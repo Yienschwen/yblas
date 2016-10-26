@@ -1,3 +1,9 @@
+# test files
+test/*
+
+# workplan
+plans.md
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
