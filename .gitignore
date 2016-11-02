@@ -4,6 +4,15 @@ test/*
 # workplan
 plans.md
 
+# Windows excutable
+*.exe
+
+# Linux excutable
+*.out
+
+# VS Code
+.vscode
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
