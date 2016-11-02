@@ -147,7 +147,7 @@ namespace yblas {
                         ptrDst += sztWidthNew;
                         ptrSrc += this->sztWidth;
                     }
-                    matrix *p_mReturn = new matrix(sztWidthNew, sztHeightNew, ptrNew);
+                    matrix *p_mReturn = new matrix(sztHeightNew, sztWidthNew, ptrNew);
                     return *p_mReturn;
                 }
 
