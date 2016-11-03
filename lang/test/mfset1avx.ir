@@ -1,0 +1,9 @@
+mfset1avx 3 3 1
+mfset1avx 3 3 2
+mfaddavx
+mfset1avx 3 3 3
+mfset1avx 3 3 4
+mfaddavx
+mfdmulavx
+set A
+print A

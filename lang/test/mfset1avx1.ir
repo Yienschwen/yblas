@@ -1,0 +1,11 @@
+litmat 3 3 1 2 3 4 5 6 7 8 9
+set A
+print A
+mfset1avx 3 3 2
+set B
+print B
+pushref A
+pushref B
+mfdmulavx
+set C
+print C

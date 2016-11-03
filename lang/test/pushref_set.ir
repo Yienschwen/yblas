@@ -1,0 +1,13 @@
+litmat 2 2 1 2 3 4
+litmat 2 3 1 2 3 4 5 6
+set B
+set A
+print A
+print B
+pushref A
+pushref B
+set C
+print C
+part C 1 2 1 2
+mfaddavx
+set D
