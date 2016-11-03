@@ -9,6 +9,11 @@
 // NO TRY...CATCH... : This should be done in runtime
 
 namespace yblas {
+
+    namespace lang {
+        class VMprototype;
+    }
+
     namespace core{
 
         template<class T>
@@ -18,7 +23,8 @@ namespace yblas {
         class matrix {
 
             public:
-                friend matrix_ref<T>;
+                // friend matrix_ref<T>;
+                friend class yblas::lang::VMprototype;
 
                 matrix() {
                     this->sztWidth = this->sztHeight = this->sztCapacity = 0;
@@ -113,7 +119,7 @@ namespace yblas {
                     this->sztWidth = mtrxInput.sztWidth;
                     this->sztHeight = mtrxInput.sztHeight;
                     std::memcpy(this->ptrArray, mtrxInput.ptrArray, sztCapacity * sizeof(T));
-                    return this;
+                    return *this;
                 }
 
                 matrix& part(std::size_t sztRowSt, std::size_t sztRowEd, 

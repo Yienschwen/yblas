@@ -8,15 +8,64 @@
 using namespace yblas::core;
 using namespace std;
 
-class memory {
+namespace yblas {
+namespace lang {
+class VMprototype {
     public:
-        ~memory() {
+
+        struct stkObj { // stack object
+
+            stkObj(mfloat* pInput, bool blCopy) {
+                p_mfSrc = pInput;
+                copy = blCopy;
+            }
+
+            mfloat* p_mfSrc;
+            bool copy;
+        };
+
+        struct pmfrd { 
+            
+            // pointer to mfloat as operand
+            // "smart-pointer" that will free all its memory when deconstructs
+            // if the matrix p_mfSrc points is a deep copy
+
+
+            pmfrd(const stkObj& objInput) {
+                this->p_mfSrc = objInput.p_mfSrc;
+                this->copy = objInput.copy;
+            }
+
+            ~pmfrd() {
+                if (copy) {
+                    p_mfSrc->clear();
+                    delete p_mfSrc;
+                }
+            }
+
+            mfloat* move() {
+                copy = false;
+                return p_mfSrc;
+            }
+
+            void clear() {
+                if (copy) {
+                    copy = false;
+                    p_mfSrc->clear();
+                    delete p_mfSrc;
+                }
+            }
+
+            mfloat* p_mfSrc;
+            bool copy;
+        };
+
+        ~VMprototype() {
             cerr << "DBG:\tMemory deconstructor called.\n";
             this->clear();
             while (!stkOperand.empty()) {
-                mfloat* p_mTop = stkOperand.top();
-                p_mTop->clear();
-                delete p_mTop;
+                pmfrd p = pmfrd(stkOperand.top());
+                p.clear();
                 stkOperand.pop(); 
             }
         }
@@ -35,9 +84,18 @@ class memory {
                 cerr << "ERR:\tOperand stack is empty. No value to assign. Skipping.\n";
                 return;
             }
-            mfloat* p_mSet = stkOperand.top();
+            pmfrd pSrc = pmfrd(stkOperand.top());
             stkOperand.pop();
-            mpMain[strName] = p_mSet;
+            auto got = mpMain.find(strName);
+            if (got != mpMain.end()) {
+                mfloat* p_mfDst = got->second;
+                // the memory of target matrix is managed by the matrix itself
+                p_mfDst->operator=(*(pSrc.p_mfSrc)); 
+            }
+            else {
+                mpMain[strName] = pSrc.move();
+            }
+            // pSrc will free its memory itself in deconstructor if it's a deep copy
         }
 
         mfloat* query(const string& strName) {
@@ -61,20 +119,24 @@ class memory {
             mpMain.erase(got);
         }
 
-        void push_operand(mfloat* p_matPush) {
-            stkOperand.push(p_matPush);
+        void push_operand(mfloat* p_matPush, bool blCopy) {
+            stkOperand.push(stkObj(p_matPush, blCopy));
         }
 
     private:
         unordered_map<string, mfloat*> mpMain;
-        stack<mfloat*> stkOperand;
+        stack<stkObj> stkOperand;
 };
+}
+}
 
 // enum op {}
 
-int main() {
+using namespace yblas::lang;
+
+int main(int argc, char** argv) {
     string strInstr; // instruction
-    memory mmrMain;
+    VMprototype vmMain;
     while (cin >> strInstr) {
         if (strInstr == "litmat") {
             size_t M, N, total;
@@ -87,38 +149,28 @@ int main() {
             // automatic push
             mfloat *p_matLit = new mfloat(M, N, ptrTemp);
             // delete [] ptrTemp;
-            mmrMain.push_operand(p_matLit);
+            vmMain.push_operand(p_matLit, true);
         }
         else if (strInstr == "set") {
             string strName;
             cin >> strName;
-            mmrMain.set(strName);
+            vmMain.set(strName);
         }
         else if (strInstr == "part") {
             string strName;
             cin >> strName;
             size_t Rst, Red, Cst, Ced;
             cin >> Rst >> Red >> Cst >> Ced;
-            mfloat *p_mSrc = mmrMain.query(strName);
+            mfloat *p_mSrc = vmMain.query(strName);
             if (!p_mSrc) {
                 cerr << "ERR:\tVariable " << strName << " not found. Skipping.\n";
                 continue;
             }
             mfloat *p_mPush = &(p_mSrc->part(Rst, Red, Cst, Ced));
-            mmrMain.push_operand(p_mPush);
+            vmMain.push_operand(p_mPush, true);
         }
-        // else if (strInstr == "ref") {
-        //     string strName;
-        //     cin >> strName;
-        //     mfloat *p_mSrc = mmrMain.query(strName);
-        //     if (!p_mSrc) {
-        //         cerr << "ERR:\tVariable " << strName << " not found. Skipping.\n";
-        //         continue;
-        //     }
-
-        // }
         else if (strInstr == "clear") {
-            mmrMain.clear();
+            vmMain.clear();
         }
         else if (strInstr == "clearvars") {
             size_t N;
@@ -126,13 +178,13 @@ int main() {
             for (size_t i = 0; i < N; i++) {
                 string strName;
                 cin >> strName;
-                mmrMain.remove(strName);
+                vmMain.remove(strName);
             }
         }
         else if (strInstr == "print") {
             string strName;
             cin >> strName;
-            mfloat *p_mSrc = mmrMain.query(strName);
+            mfloat *p_mSrc = vmMain.query(strName);
             if (!p_mSrc) {
                 cerr << "ERR:\tVariable " << strName << " not found. Skipping.\n";
                 continue;
